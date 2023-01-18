@@ -21,25 +21,39 @@ async def on_ready():
     economy.commit()
     print("Bot Is Ready")
 
+#@bot.before_invoke
+#async def accountcheck():
+#    await print("A command has been used.")
+
+#@bot.after_invoke
+#async def accountupdate():
+#   await print("A command has been used.")
+
 @bot.slash_command(guild_ids=servers, description="Ask the bot to greet you.")
 async def greet(interaction: nextcord.Interaction):
-    await interaction.send(f"Greetings, partner.")
+    await interaction.send(f"Hello, {interaction.user.mention}.")
 
 @bot.slash_command(guild_ids=servers, description="Create your own bank account!")
 async def openaccount(interaction:nextcord.Interaction):
     user = interaction.user
-    if banker.execute("SELECT * FROM banking WHERE player=?", [user.id]):
-        wallets = banker.execute("SELECT wallet FROM banking WHERE player=?", [user.id]).fetchone()
-        banked = banker.execute("SELECT wallet FROM banking WHERE player=?", [user.id]).fetchone()
-        await interaction.send(f"{user.mention} has an account;\n userid: {user.id}, wallet: {wallets}, bank: {banked}")
+    a = banker.execute("SELECT * FROM banking WHERE player=?", [user.id]).fetchone()
+    if a:
+        networth = banker.execute("SELECT net FROM banking WHERE player=?", [user.id]).fetchone()
+        await interaction.send(f"{user.mention} You currently have an account with this bot.\nYour current total balance is: {networth}", ephemeral=True)
     else:
-        await interaction.send(f"{user.mention}, does not have an account.")
+        await interaction.send(f"{user.mention} An account has been created for you.")
+        banker.execute("INSERT INTO banking VALUES(?, ?, ?, ?)", [user.id, 0, defbank, defbank])
+        economy.commit()
+
 @bot.slash_command(guild_ids=servers, description="Check your account balance")
 async def balance(interaction:nextcord.Interaction):
     checker = interaction.user
-    if banker.execute("SELECT * FROM banking WHERE player = ?", [checker.id]):
-        await interaction.send(f"{checker.mention}, this feature is not ready yet.",ephemeral=True)
+    a = banker.execute("SELECT * FROM banking WHERE player=?", [checker.id]).fetchone()
+    if a:
+        pwallet = banker.execute("SELECT wallet FROM banking WHERE player=?", [checker.id]).fetchone()
+        pbank = banker.execute("SELECT bank FROM banking WHERE player=?", [checker.id]).fetchone()
+        await interaction.send(f"{checker.mention}'s balance:\nWallet: {pwallet}\nBank: {pbank}")
     else:
-        await interaction.send(f"{checker.mention}, you do not have an account yet, run /openaccount to create one now.",ephemeral=True)
+        await interaction.send(f"{checker.mention} you must create an account for yourself using /openaccount to be able to use my commands.")
 
 bot.run(TOKEN)
